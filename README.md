@@ -197,4 +197,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-For questions or feedback, please open an issue on this repository or contact [author@example.com](mailto:author@example.com).
+For questions or feedback, please open an issue on this repository or contact gabriel.sasuu@gmail.com
