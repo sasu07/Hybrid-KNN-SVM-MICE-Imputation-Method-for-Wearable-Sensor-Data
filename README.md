@@ -195,7 +195,7 @@ publication) and the HAR70+ dataset:
 > Logacjov, A.; Bach, K.; Kongsvold, A.; Bårdstu, H.B.; Mork, P.J. HARTH: A Human Activity
 > Recognition Dataset for Machine Learning. *Sensors* 2021, 21, 7853. doi:10.3390/s21237853
 
-
+---
 ```
 @thesis{
   title={Intelligent Systems for Enhanced Elderly Well-being: Advanced Data Imputation Strategies and Virtual Reality Applications for Cognitive Health},
