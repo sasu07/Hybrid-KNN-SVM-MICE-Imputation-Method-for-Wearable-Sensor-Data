@@ -43,7 +43,7 @@ from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer, SimpleImputer
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
-from hybrid_imputation_noleak import HybridImputerNoLeak
+from hybrid_imputation import HybridImputerNoLeak
 from realistic_missing_data_generator import RealisticMissingDataGenerator
 
 # ===========================  CONFIG  ======================================
