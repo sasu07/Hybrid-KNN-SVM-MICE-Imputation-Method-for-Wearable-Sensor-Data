@@ -1,186 +1,200 @@
-# Hybrid KNN-SVM-MICE Imputation Method for Wearable Sensor Data
+# A Realistic Evaluation Framework and Staged Hybrid Pipeline (KNN–SVR–MICE) for Robust Missing-Data Imputation in Wearable Sensor Monitoring of Elderly Populations
 
-## Overview
+This repository contains the full implementation, the realistic missing-data evaluation framework,
+and all results for a **staged hybrid imputation method** (KNN → SVR → MICE) for missing data in
+wearable-sensor monitoring of older adults.
 
-This repository contains the implementation, evaluation, and analysis of a novel hybrid imputation method for wearable sensor data in elderly monitoring applications. The hybrid method combines K-Nearest Neighbors (KNN), Support Vector Machines (SVM), and Multiple Imputation by Chained Equations (MICE) in a sequential pipeline to leverage their complementary strengths.
+It accompanies the article submitted to *Sensors* (MDPI). The method is evaluated under a strict
+**leakage-free** protocol on two datasets:
 
-The method demonstrates significant improvements over traditional imputation approaches, with an average RMSE reduction of 21.12% compared to KNN and 7.04% compared to SVM across various realistic missing data scenarios.
+- **Dataset A — HAR70+** (public benchmark, 18 older adults, 70–95 years) — the primary methodological
+  validation.
+- **Dataset B — real-world ambulatory pilot** (proprietary, 3,845 measurements) — a real-world case
+  study from our own hardware implementation.
 
-## Repository Structure
+---
+
+## Table of contents
+
+- [Key features](#key-features)
+- [Repository structure](#repository-structure)
+- [Installation](#installation)
+- [Reproducing the results](#reproducing-the-results)
+- [Method summary](#method-summary)
+- [Results at a glance](#results-at-a-glance)
+- [Notes on data](#notes-on-data)
+- [Citation](#citation)
+- [License](#license)
+
+---
+
+## Key features
+
+- **Leakage-free** staged hybrid imputer with an explicit `fit` / `transform` split, so imputation
+  models never see the ground-truth values they are evaluated on.
+- A **dataset-agnostic** realistic missing-data generator producing six device-driven failure
+  scenarios across the MCAR, MAR, and MNAR mechanisms, at 10%, 20%, and 30% missing rates.
+- A complete **evaluation pipeline**: six-method benchmark (mean, KNN, SVR, MICE, MissForest,
+  Hybrid), paired-t-test significance, downstream activity-classification validation, ablation study,
+  and runtime measurement.
+- **All result CSVs** for both datasets are included under `results/`.
+
+---
+
+## Repository structure
 
 ```
-hybrid-imputation-method/
+.
 ├── code/
-│   ├── imputation_methods/        # Implementation of imputation methods
-│   │   ├── knn_imputation.py      # KNN imputation algorithm
-│   │   ├── svm_imputation.py      # SVM imputation algorithm
-│   │   └── hybrid_imputation.py   # Hybrid KNN-SVM-MICE imputation algorithm
-│   ├── data_generation/           # Code for generating missing data scenarios
-│   │   └── realistic_missing_data_generator.py
-│   ├── evaluation/                # Code for evaluating imputation methods
-│   │   ├── evaluation_framework.py
-│   │   ├── analyze_performance.py
-│   │   └── generate_hybrid_results_summary.py
-│   └── visualization/             # Code for generating figures
-│       ├── figure1_general_performance.py
-│       ├── figure2_mechanism_performance.py
-│       ├── figure3_percentage_impact.py
-│       ├── figure4_improvement_heatmap.py
-│       ├── figure5_hybrid_architecture.py
-│       └── figure6_extreme_values_robustness.py
+│   └── imputation_methods/
+│       ├── hybrid_imputation.py               # leakage-free staged hybrid imputer (KNN→SVR→MICE)
+│       ├── realistic_missing_data_generator.py# 6 scenarios × MCAR/MAR/MNAR (dataset-agnostic)
+│       ├── run_benchmark.py                    # 6-method imputation benchmark
+│       ├── run_downstream.py                   # downstream activity-classification validation
+│       ├── run_ablation_runtime.py            # ablation + runtime + per-variable analysis
+│       ├── run_all.py                          # runs the full HAR70+ pipeline end to end
+│       ├── 01_extract_har70_features.py        # windowed feature extraction for HAR70+
+│       ├── knn_imputation.py                   # standalone KNN reference implementation
+│       └── svm_imputation.py                   # standalone SVR reference implementation
 ├── data/
-│   ├── original/                  # Original complete dataset
-│   │   └── original_data.csv
-│   ├── missing_data/              # Generated missing data scenarios
-│   │   ├── MCAR_RandomSensorFailures_10pct.csv
-│   │   ├── MCAR_RandomSensorFailures_20pct.csv
-│   │   └── ...
-│   └── imputed/                   # Results of imputation methods
-│       ├── knn/
-│       ├── svm/
-│       └── hybrid/
+│   └── original/
+│       └── original_data.csv                   # real-world ambulatory pilot (Dataset B)
 ├── results/
-│   ├── tables/                    # Performance comparison tables
-│   │   ├── table1_general_performance.md
-│   │   ├── table2_mechanism_performance.md
-│   │   └── ...
-│   ├── figures/                   # Generated figures
-│   │   ├── figure1_general_performance.png
-│   │   ├── figure2_mechanism_performance.png
-│   │   └── ...
-│   └── analysis/                  # Detailed analysis results
-│       ├── combined_results.csv
-│       ├── mechanism_summary.csv
-│       └── ...
+│   ├── har70_benchmark/                        # all result CSVs on HAR70+ (primary)
+│   │   ├── results_overall.csv
+│   │   ├── results_by_mechanism.csv
+│   │   ├── results_summary.csv
+│   │   ├── results_per_run.csv
+│   │   ├── downstream_summary.csv
+│   │   ├── downstream_per_run.csv
+│   │   ├── ablation_summary.csv
+│   │   ├── ablation_by_mechanism.csv
+│   │   ├── runtime_summary.csv
+│   │   └── per_variable_summary.csv
+│   └── pilot_dataset_B/                         # result CSVs on the pilot dataset
+│       ├── results_overall.csv
+│       └── downstream_summary.csv
 ├── docs/
-│   ├── methodology.md             # Detailed methodology description
-├── requirements.txt               # Python dependencies
-├── LICENSE                        # MIT License
-└── README.md                      # This file
+│   └── methodology.md                          # detailed methodology (leakage-free protocol)
+├── requirements.txt
+├── LICENSE
+└── README.md
 ```
+
+---
 
 ## Installation
 
-To install the required dependencies:
+Requires **Python 3.10+**.
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Step-by-Step Guide
+Dependencies: `numpy`, `pandas`, `scikit-learn`, `scipy`.
 
-### 1. Data Preparation
+---
 
-Start with a complete dataset (no missing values) and generate realistic missing data scenarios:
+## Reproducing the results
 
-```bash
-python code/data_generation/realistic_missing_data_generator.py \
-    --input data/original/original_data.csv \
-    --output data/missing_data/ \
-    --percentages 10 20 30
-```
+All scripts live in `code/imputation_methods/`. Run them from that directory.
 
-This will create 18 different missing data scenarios based on three mechanisms (MCAR, MAR, MNAR) and six scenario types, each with three different percentages of missing data (10%, 20%, 30%).
+### Dataset A — HAR70+ (primary benchmark)
 
-### 2. Running Imputation Methods
-
-#### KNN Imputation
+HAR70+ is a public dataset and is **not redistributed here**. Download it from the
+[UCI Machine Learning Repository (ID 780)](https://archive.ics.uci.edu/dataset/780/har70) or the
+HARTH/HAR70+ project, and unzip it so that the 18 per-participant files `501.csv … 518.csv` sit in a
+folder named `har70plus/` inside `code/imputation_methods/`.
 
 ```bash
-python code/imputation_methods/knn_imputation.py \
-    --input data/missing_data/ \
-    --output data/imputed/knn/ \
-    --original data/original/original_data.csv
+cd code/imputation_methods
+# place ./har70plus/501.csv ... 518.csv here, then:
+python run_all.py
 ```
 
-#### SVM Imputation
+`run_all.py` runs, in order:
 
-```bash
-python code/imputation_methods/svm_imputation.py \
-    --input data/missing_data/ \
-    --output data/imputed/svm/ \
-    --original data/original/original_data.csv
+1. `01_extract_har70_features.py` — segments the raw 50 Hz back/thigh accelerometer signals into
+   non-overlapping 3-second windows and extracts 19 numeric features → `data/har70_full.csv`.
+2. `run_benchmark.py` — six-method imputation benchmark → `results_*.csv`.
+3. `run_downstream.py` — activity-classification validation → `downstream_*.csv`.
+4. `run_ablation_runtime.py` — ablation, runtime, and per-variable analysis →
+   `ablation_*`, `runtime_*`, `per_variable_*`.
+
+You can also run each step individually; each script has a short usage note at the top.
+
+> **Tip:** the benchmark uses `N_SEEDS = 10` by default. For a quicker first pass, lower it near the
+> top of `run_benchmark.py`.
+
+### Dataset B — real-world pilot
+
+The pilot dataset is included at `data/original/original_data.csv`. To run the benchmark on it,
+set near the top of `run_benchmark.py` (and `run_downstream.py`):
+
+```python
+COMPLETE_CSV = "data/original/original_data.csv"
 ```
 
-#### Hybrid Imputation
+and run those scripts as above.
 
-```bash
-python code/imputation_methods/hybrid_imputation.py \
-    --input data/missing_data/ \
-    --output data/imputed/hybrid/ \
-    --original data/original/original_data.csv
-```
+---
 
-### 3. Evaluating Performance
+## Method summary
 
-Generate performance summary for the hybrid method:
+The hybrid pipeline (`hybrid_imputation.py`, class `HybridImputerNoLeak`) imputes a multivariate
+sensor matrix in three stages, with an explicit `fit` / `transform` split:
 
-```bash
-python code/evaluation/generate_hybrid_results_summary.py \
-    --imputed_dir data/imputed/hybrid/ \
-    --missing_dir data/missing_data/ \
-    --original data/original/original_data.csv \
-    --output results/analysis/hybrid_results_summary.csv
-```
+1. **KNN initialization** — per-column k-nearest-neighbour regression (k = 5, Manhattan distance)
+   provides a first estimate.
+2. **SVR refinement** — per-column Support Vector Regression (RBF kernel, C = 100, ε = 0.1) refines
+   the estimate over five iterations, blended with the KNN estimate (0.6 / 0.4).
+3. **MICE refinement** — a final Multivariate Imputation by Chained Equations pass enforces
+   multivariate consistency.
 
-Analyze performance of all methods:
+See [`docs/methodology.md`](docs/methodology.md) for the full description, including the leakage-free
+evaluation protocol and the complete hyper-parameter table.
 
-```bash
-python code/evaluation/analyze_performance.py \
-    --knn data/imputed/knn/ \
-    --svm data/imputed/svm/ \
-    --hybrid data/imputed/hybrid/ \
-    --original data/original/original_data.csv \
-    --output results/analysis/
-```
+---
 
-### 4. Generating Visualizations
+## Results at a glance
 
-Generate all figures:
+**HAR70+ benchmark** (leakage-free, 18 older adults, 13,571 windows, 10 seeds):
 
-```bash
-python code/visualization/figure1_general_performance.py
-python code/visualization/figure2_mechanism_performance.py
-python code/visualization/figure3_percentage_impact.py
-python code/visualization/figure4_improvement_heatmap.py
-python code/visualization/figure5_hybrid_architecture.py
-python code/visualization/figure6_extreme_values_robustness.py
-```
+| Method | RMSE | R² |
+|---|---|---|
+| **Hybrid (proposed)** | **0.178** | **0.866** |
+| KNN | 0.218 | 0.804 |
+| MissForest | 0.223 | 0.805 |
+| MICE | 0.235 | 0.792 |
+| SVR | 0.314 | 0.600 |
+| Mean | 0.322 | 0.645 |
 
-## Methodology
+The hybrid method significantly outperformed every baseline on both RMSE and R² (paired t-tests,
+p < 0.001) and led under all three missingness mechanisms. In downstream activity classification it
+came closest to the complete-data upper bound (95.7% accuracy vs. 99.5% on complete data). The same
+ranking held on the real-world pilot (Dataset B). Full numbers are in `results/`.
 
-The hybrid imputation method combines three approaches in a sequential pipeline:
+---
 
-### Phase 1: Training on Complete Data
-- Normalize the complete data using StandardScaler
-- For each variable, train an SVM regression model using all other variables as predictors
+## Notes on data
 
-### Phase 2: Initial Imputation with KNN and Refinement with SVM
-- Apply KNN imputation to the incomplete data
-- Apply the pre-trained SVM models to refine the KNN-imputed values
-- Rescale the imputed values to match the original data distribution
+- **HAR70+** is openly licensed (CC BY 4.0) but is downloaded from the original source rather than
+  redistributed here.
+- The **pilot dataset** (`data/original/original_data.csv`) comes from our own hardware deployment.
+  If you reuse it, please respect the privacy considerations described in the article.
+- Generated intermediate files (e.g. `har70_full.csv`) and per-run outputs are not committed; they
+  are regenerated by the scripts.
 
-### Phase 3: Final Refinement with MICE
-- Use the SVM-refined values as the starting point for MICE
-- Run multiple iterations of chained equations to ensure consistency
-- Each variable is modeled as a function of all other variables
-
-For detailed information about the methodology, see [docs/methodology.md](docs/methodology.md).
-
-## Results
-
-The hybrid method demonstrates superior performance compared to both KNN and SVM methods:
-
-- **Overall Performance**: 21.12% improvement over KNN and 7.04% improvement over SVM in terms of RMSE
-- **Missing Data Mechanisms**: Best performance in MCAR scenarios (19.68% improvement over SVM)
-- **Missing Data Percentage**: Increasing advantage as the percentage of missing data increases
-- **Robustness to Extreme Values**: 27.09% improvement over KNN and 10.84% over SVM for values beyond 3 standard deviations
-
-For detailed results and analysis, see the [results](results/) directory.
+---
 
 ## Citation
 
-If you use this code or methodology in your research, please cite:
+If you use this code or framework, please cite the accompanying article (details to be added on
+publication) and the HAR70+ dataset:
+
+> Logacjov, A.; Bach, K.; Kongsvold, A.; Bårdstu, H.B.; Mork, P.J. HARTH: A Human Activity
+> Recognition Dataset for Machine Learning. *Sensors* 2021, 21, 7853. doi:10.3390/s21237853
+
 
 ```
 @thesis{
@@ -190,8 +204,10 @@ If you use this code or methodology in your research, please cite:
   school={University Politehnica of Bucharest}
 }
 ```
+---
 
 ## License
+
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
