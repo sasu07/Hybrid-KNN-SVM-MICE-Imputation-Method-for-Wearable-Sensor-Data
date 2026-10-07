@@ -1,0 +1,5 @@
+contrast,description,mean_diff,CI_low,CI_high,cohens_dz,p_perm,p_holm
+Full - KNN_SVR,two-stage KNN-SVR (no refinement),-0.1105,-0.1606,-0.0685,-1.066,5e-05,0.0002
+Full - KNN_MICE,KNN estimate + refinement,-0.0453,-0.0628,-0.0297,-1.236,5e-05,0.0002
+Full - SVR_MICE,SVR estimate + refinement,-0.0603,-0.0872,-0.0353,-1.06,0.0002,0.0004
+Full - MICE_within,refinement from mean init,-0.0186,-0.0292,-0.0086,-0.82,0.0026,0.0026
