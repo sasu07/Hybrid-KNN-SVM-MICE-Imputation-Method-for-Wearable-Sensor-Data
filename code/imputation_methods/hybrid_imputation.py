@@ -9,6 +9,7 @@ from sklearn.svm import SVR
 from sklearn.preprocessing import StandardScaler
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer
+from sklearn.linear_model import BayesianRidge
 
 
 class HybridImputerNoLeak:
@@ -30,8 +31,8 @@ class HybridImputerNoLeak:
     # ---- FIT: only on complete TRAIN rows (no eval data here) ----
     def fit(self, X_train):
         X_train = np.asarray(X_train, dtype=float)
-        if len(X_train) > 1500:
-            X_train = X_train[np.random.RandomState(0).choice(len(X_train), 1500, replace=False)]
+        if len(X_train) > 800:
+            X_train = X_train[np.random.RandomState(0).choice(len(X_train), 800, replace=False)]
         self.d_ = X_train.shape[1]
         self.scaler_ = StandardScaler().fit(X_train)
         Xs = self.scaler_.transform(X_train)
@@ -81,7 +82,7 @@ class HybridImputerNoLeak:
 
         # --- final MICE refinement (fit on the current imputed eval matrix) ---
         mice = IterativeImputer(
-            estimator=SVR(kernel=self.svm_kernel, C=self.svm_C, epsilon=self.svm_epsilon),
+            estimator=BayesianRidge(),
             max_iter=self.mice_max_iter, random_state=self.random_state)
         cur = mice.fit_transform(cur)
 
